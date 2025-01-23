@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-provider-aws/internal/errs"
 	"github.com/hashicorp/terraform-provider-aws/internal/errs/sdkdiag"
 	"github.com/hashicorp/terraform-provider-aws/internal/flex"
+	tfmaps "github.com/hashicorp/terraform-provider-aws/internal/maps"
 	tfslices "github.com/hashicorp/terraform-provider-aws/internal/slices"
 	tftags "github.com/hashicorp/terraform-provider-aws/internal/tags"
 	"github.com/hashicorp/terraform-provider-aws/internal/tfresource"
@@ -746,7 +747,8 @@ func resourceListenerUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	var diags diag.Diagnostics
 	conn := meta.(*conns.AWSClient).ELBV2Client(ctx)
 
-	if d.HasChangesExcept(names.AttrTags, names.AttrTagsAll, "tcp_idle_timeout_seconds") {
+	tagsListenerAttributesKeys := append([]string{names.AttrTags, names.AttrTagsAll}, listenerAttributesKeys...)
+	if d.HasChangesExcept(tagsListenerAttributesKeys...) {
 		input := &elasticloadbalancingv2.ModifyListenerInput{
 			ListenerArn: aws.String(d.Id()),
 		}
@@ -793,7 +795,7 @@ func resourceListenerUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	if d.HasChanges("tcp_idle_timeout_seconds") {
+	if d.HasChanges(listenerAttributesKeys...) {
 		lbARN := d.Get("load_balancer_arn").(string)
 		listenerProtocolType := awstypes.ProtocolEnum(d.Get(names.AttrProtocol).(string))
 		// Protocol does not need to be explicitly set with GWLB listeners, nor is it returned by the API
@@ -982,6 +984,7 @@ var listenerAttributes = listenerAttributeMap(map[string]listenerAttributeInfo{
 		tfType:                 schema.TypeString,
 	},
 })
+var listenerAttributesKeys = tfmaps.Keys(listenerAttributes)
 
 func (m listenerAttributeMap) expand(d *schema.ResourceData, listenerType awstypes.ProtocolEnum, update bool) []awstypes.ListenerAttribute {
 	var apiObjects []awstypes.ListenerAttribute
